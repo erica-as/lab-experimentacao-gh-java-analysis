@@ -39,6 +39,14 @@ Só coleta API (sem clone/CK):
 dotnet run --project src/MetricsCollector/MetricsCollector.csproj -- --collect-only
 ```
 
+Só **clone + CK** (usa o `data/repositorios_processo.csv` já existente, sem chamar a API):
+
+```bash
+dotnet run --project src/MetricsCollector/MetricsCollector.csproj -- --ck-only
+```
+
+Ainda precisas de `CK_JAR` e Java; `GITHUB_TOKEN` não é obrigatório neste modo.
+
 Tempos: ~2–3 min para 10 páginas Search; CK depende do tamanho do repo (a amostra predefinida é a **última** linha da lista para ser mais rápida).
 
 **Nota:** `ReleasesCount` na Search REST fica **0** (não vem no JSON); podes enriquecer depois se precisares para RQ03.

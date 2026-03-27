@@ -12,6 +12,7 @@ class Program
     static async Task Main(string[] args)
     {
         var collectOnly = args.Contains("--collect-only", StringComparer.OrdinalIgnoreCase);
+        var ckOnly = args.Contains("--ck-only", StringComparer.OrdinalIgnoreCase);
 
         string? FindEnv()
         {
@@ -35,27 +36,56 @@ class Program
         var githubToken =
             Environment.GetEnvironmentVariable("GITHUB_TOKEN")?.Trim()
             ?? Environment.GetEnvironmentVariable("GH_TOKEN")?.Trim();
-        if (string.IsNullOrWhiteSpace(githubToken) || githubToken == "SEU_TOKEN_AQUI")
+        if (!ckOnly && (string.IsNullOrWhiteSpace(githubToken) || githubToken == "SEU_TOKEN_AQUI"))
             Console.WriteLine("Aviso: defina GITHUB_TOKEN (ou GH_TOKEN) no ambiente; com .env, carregue-o antes (o Load acima injeta no processo).");
 
-        using var http = new HttpClient();
-        GitHubRestSearchCollector.ConfigureHttp(http, githubToken);
+        List<RepositoryData> repositories;
+        var repoRoot = RepoLayout.FindRepoRoot();
 
-        Console.WriteLine($"Iniciando busca pelos {GitHubRestSearchCollector.MaxRepositories} repositórios Java (REST Search, até 10 páginas × 100).");
-
-        var repositories = await GitHubRestSearchCollector.CollectAsync(http);
-
-        Console.WriteLine($"Coleta concluída. {repositories.Count} repositórios encontrados.");
-
-        CsvExporter.SaveToCsv(repositories, "repositorios_processo.csv");
-
-        if (collectOnly)
+        if (ckOnly)
         {
-            Console.WriteLine("Modo --collect-only: clone/CK não executados.");
-            return;
+            Console.WriteLine("Modo --ck-only: lendo data/repositorios_processo.csv e executando só clone + CK.");
+            try
+            {
+                repositories = CsvExporter.LoadFromCsv("repositorios_processo.csv");
+            }
+            catch (FileNotFoundException ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                Environment.ExitCode = 2;
+                return;
+            }
+
+            if (repositories.Count == 0)
+            {
+                Console.Error.WriteLine("CSV vazio.");
+                Environment.ExitCode = 2;
+                return;
+            }
+
+            Console.WriteLine($"Linhas carregadas: {repositories.Count}. CK_JAR + Java necessários.");
+        }
+        else
+        {
+            using var http = new HttpClient();
+            GitHubRestSearchCollector.ConfigureHttp(http, githubToken);
+
+            Console.WriteLine(
+                $"Iniciando busca pelos {GitHubRestSearchCollector.MaxRepositories} repositórios Java (REST Search, até 10 páginas × 100).");
+
+            repositories = await GitHubRestSearchCollector.CollectAsync(http);
+
+            Console.WriteLine($"Coleta concluída. {repositories.Count} repositórios encontrados.");
+
+            CsvExporter.SaveToCsv(repositories, "repositorios_processo.csv");
+
+            if (collectOnly)
+            {
+                Console.WriteLine("Modo --collect-only: clone/CK não executados.");
+                return;
+            }
         }
 
-        var repoRoot = RepoLayout.FindRepoRoot();
         try
         {
             await Sprint1LabWorkflow.RunCkSampleAsync(repositories, repoRoot);

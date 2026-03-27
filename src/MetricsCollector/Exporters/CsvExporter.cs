@@ -1,30 +1,31 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using CsvHelper;
-using System.Globalization;
+using MetricsCollector.Lab;
 using MetricsCollector.Models;
 
 namespace MetricsCollector
 {
     public static class CsvExporter
     {
+        public static List<RepositoryData> LoadFromCsv(string fileName)
+        {
+            var repoRoot = RepoLayout.FindRepoRoot();
+            var outputDir = Path.Combine(repoRoot, "data");
+            var fullPath = Path.Combine(outputDir, Path.GetFileName(fileName));
+            if (!File.Exists(fullPath))
+                throw new FileNotFoundException($"CSV não encontrado: {fullPath}. Corra antes a coleta ou use o caminho certo.");
+
+            using var reader = new StreamReader(fullPath);
+            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            return csv.GetRecords<RepositoryData>().ToList();
+        }
+
         public static void SaveToCsv(List<RepositoryData> data, string fileName)
         {
-            // Localiza a raiz do repositório procurando um arquivo .sln subindo a árvore de diretórios
-            string FindRepoRoot()
-            {
-                var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
-                while (dir != null)
-                {
-                    var slnFiles = dir.GetFiles("*.sln");
-                    if (slnFiles.Length > 0) return dir.FullName;
-                    dir = dir.Parent;
-                }
-                return Directory.GetCurrentDirectory();
-            }
-
-            var repoRoot = FindRepoRoot();
+            var repoRoot = RepoLayout.FindRepoRoot();
             var outputDir = Path.Combine(repoRoot, "data");
             if (!Directory.Exists(outputDir)) Directory.CreateDirectory(outputDir);
 
