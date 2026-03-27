@@ -1,6 +1,10 @@
 # Arquivos de ambiente
 .env
 
+# Clones locais (gerados pelo script)
+clones/
+cloned_repos/
+
 # Arquivos gerados pelo .NET
 [Bb]in/
 [Oo]bj/

@@ -5,7 +5,7 @@ Este repositório contém ferramentas para coletar métricas de processo de repo
 Resumo:
 
 - Código principal em C#: `src/MetricsCollector` — coleta metadados (estrelas, idade, releases) dos repositórios Java.
-- Script Python em `scripts/clone_repos.py` — clona repositórios listados no CSV gerado.
+- Script shell `scripts/clone_repos.sh` — clona repositórios listados no CSV gerado.
 - Arquivo de configuração: `.env` (não comitar) — deve conter `GITHUB_TOKEN`.
 
 ## Sobre o Lab 02
@@ -44,16 +44,17 @@ Observações:
 - O CSV gerado será salvo em `data/repositorios_processo.csv` (pasta criada automaticamente na raiz do repositório).
 - A coleta faz chamadas à API do GitHub e respeita pausas para ajudar a evitar rate limits; com um token válido o limite é maior (5000/h).
 
-## Clonar repositórios (script Python)
+## Clonar repositórios
 
-Depois de gerar o CSV, use o script para clonar os repositórios:
+Depois de gerar o CSV:
 
 ```bash
-python3 scripts/clone_repos.py --csv data/repositorios_processo.csv --out cloned_repos --limit 100 --skip-existing
+chmod +x scripts/clone_repos.sh
+./scripts/clone_repos.sh --csv data/repositorios_processo.csv --out clones --limit 100 --skip-existing
 ```
 
 - `--limit` limita quantos repositórios clonar (0 = sem limite).
-- `--skip-existing` pula diretórios já clonados.
+- `--skip-existing` pula diretórios já existentes.
 
 ## Próximos passos e notas
 
