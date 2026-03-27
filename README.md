@@ -1,12 +1,11 @@
 # Lab - Análise de Repositórios Java (Lab 02)
 
-Este repositório contém ferramentas para coletar métricas de processo de repositórios Java no GitHub, automatizar clones e exportar resultados em CSV.
+Este repositório contém o coletor de métricas de processo de repositórios Java no GitHub e exporta resultados em CSV.
 
 Resumo:
 
-- Código principal em C#: `src/MetricsCollector` — coleta metadados (estrelas, idade, releases) dos repositórios Java.
-- Script shell `scripts/clone_repos.sh` — clona repositórios listados no CSV gerado.
-- Arquivo de configuração: `.env` (não comitar) — deve conter `GITHUB_TOKEN`.
+- Código em C#: `src/MetricsCollector` — metadados (estrelas, idade, releases).
+- Configuração: `.env` (não comitar) com `GITHUB_TOKEN`.
 
 ## Sobre o Lab 02
 
@@ -43,18 +42,6 @@ Observações:
 - O coletor procura o `.env` automaticamente subindo a árvore de diretórios, então execute o comando a partir da pasta raiz ou de `src/MetricsCollector`.
 - O CSV gerado será salvo em `data/repositorios_processo.csv` (pasta criada automaticamente na raiz do repositório).
 - A coleta faz chamadas à API do GitHub e respeita pausas para ajudar a evitar rate limits; com um token válido o limite é maior (5000/h).
-
-## Clonar repositórios
-
-Depois de gerar o CSV:
-
-```bash
-chmod +x scripts/clone_repos.sh
-./scripts/clone_repos.sh --csv data/repositorios_processo.csv --out clones --limit 100 --skip-existing
-```
-
-- `--limit` limita quantos repositórios clonar (0 = sem limite).
-- `--skip-existing` pula diretórios já existentes.
 
 ## Próximos passos e notas
 

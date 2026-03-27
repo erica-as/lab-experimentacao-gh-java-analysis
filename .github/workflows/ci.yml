@@ -22,6 +22,3 @@ jobs:
 
       - name: dotnet build
         run: dotnet build -c Release lab-experimentacao-gh-java-analysis.sln
-
-      - name: Sintaxe do script de clone
-        run: bash -n scripts/clone_repos.sh
