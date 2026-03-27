@@ -1,6 +1,9 @@
 # Arquivos de ambiente
 .env
 
+# Clones e saída temporária do CK (gerados pelo MetricsCollector)
+artifacts/
+
 # Arquivos gerados pelo .NET
 [Bb]in/
 [Oo]bj/
