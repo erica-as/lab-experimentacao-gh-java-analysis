@@ -36,11 +36,11 @@ class Program
             Console.WriteLine("Aviso: defina GITHUB_TOKEN (ou GH_TOKEN) no ambiente; com .env, carregue-o antes (o Load acima injeta no processo).");
 
         using var http = new HttpClient();
-        GitHubGraphQlRepositoryCollector.ConfigureHttp(http, githubToken);
+        GitHubRestSearchCollector.ConfigureHttp(http, githubToken);
 
-        Console.WriteLine($"Iniciando busca pelos {GitHubGraphQlRepositoryCollector.MaxRepositories} repositórios Java (GraphQL + cursor).");
+        Console.WriteLine($"Iniciando busca pelos {GitHubRestSearchCollector.MaxRepositories} repositórios Java (REST Search, até 10 páginas × 100).");
 
-        var repositories = await GitHubGraphQlRepositoryCollector.CollectAsync(http);
+        var repositories = await GitHubRestSearchCollector.CollectAsync(http);
 
         Console.WriteLine($"Coleta concluída. {repositories.Count} repositórios encontrados.");
 

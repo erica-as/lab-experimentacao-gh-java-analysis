@@ -4,7 +4,7 @@ Este repositório contém o coletor de métricas de processo de repositórios Ja
 
 Resumo:
 
-- Código em C#: `src/MetricsCollector` — busca **GraphQL** com **paginação por cursor** até 1.000 repositórios Java (estrelas, idade, contagem de releases).
+- Código em C#: `src/MetricsCollector` — busca até **1.000** repos Java via **REST** (`/search/repositories`, `sort=stars` + **10 páginas** × 100). Coluna **ReleasesCount** fica **0** nesta coleta (a Search REST não traz releases; dá para enriquecer depois com outra API se precisar para RQ03).
 - Configuração: `.env` (não comitar) com `GITHUB_TOKEN`.
 
 ## Sobre o Lab 02
@@ -16,7 +16,7 @@ Objetivo: coletar os top-1.000 repositórios Java (ou uma amostra representativa
 - RQ03: relação entre atividade (releases) e qualidade
 - RQ04: relação entre tamanho (LOC) e qualidade
 
-O código atual coleta popularidade, maturidade e número de releases. Métricas de qualidade (CBO/DIT/LCOM) e LOC exigem clonar o código e executar análise estática (próximas tarefas).
+O código atual coleta popularidade e idade; **releases** no CSV não são preenchidos na etapa de Search (apenas placeholder 0). Métricas de qualidade (CBO/DIT/LCOM) e LOC exigem CK / análise estática.
 
 ## Configuração
 
@@ -41,7 +41,7 @@ Observações:
 
 - O coletor procura o `.env` automaticamente subindo a árvore de diretórios, então execute o comando a partir da pasta raiz ou de `src/MetricsCollector`.
 - O CSV gerado será salvo em `data/repositorios_processo.csv` (pasta criada automaticamente na raiz do repositório).
-- A coleta usa o endpoint GraphQL (`/graphql`), pagina com `after`/`pageInfo.endCursor` e faz uma pausa curta entre páginas. Com um PAT válido o limite da API costuma ser confortável para ~10 páginas (1000 repos).
+- Entre páginas da Search há ~2,1s de pausa (limite ~30 buscas/minuto com autenticação). Rode com **`GITHUB_TOKEN`** para não estourar rate limit; o run completo leva ~20–30s além do tempo de rede.
 
 ## Próximos passos e notas
 
