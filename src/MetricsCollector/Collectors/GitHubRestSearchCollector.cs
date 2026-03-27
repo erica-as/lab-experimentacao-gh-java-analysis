@@ -16,12 +16,21 @@ public static class GitHubRestSearchCollector
     private const int MaxPages = 10;
     private const string SearchQuery = "language:java"; // sort/order vêm nos query params
 
+    /// <summary>Pausa entre páginas da Search (evita secondary rate limit). Override: env GITHUB_SEARCH_PAGE_DELAY_MS.</summary>
+    private static int PageDelayMs =>
+        int.TryParse(Environment.GetEnvironmentVariable("GITHUB_SEARCH_PAGE_DELAY_MS"), out var ms) && ms >= 1000
+            ? ms
+            : 8000;
+
     public static async Task<List<RepositoryData>> CollectAsync(HttpClient http, CancellationToken cancellationToken = default)
     {
         var list = new List<RepositoryData>(MaxRepositories);
 
         for (var page = 1; page <= MaxPages && list.Count < MaxRepositories; page++)
         {
+            if (page > 1)
+                await Task.Delay(PageDelayMs, cancellationToken);
+
             var qs = $"q={Uri.EscapeDataString(SearchQuery)}" +
                      $"&sort=stars" +
                      $"&order=desc" +
@@ -29,11 +38,7 @@ public static class GitHubRestSearchCollector
                      $"&page={page}";
 
             var url = $"https://api.github.com/search/repositories?{qs}";
-            using var response = await http.GetAsync(url, cancellationToken);
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException($"GitHub Search HTTP {(int)response.StatusCode}: {body}");
+            var body = await FetchSearchPageAsync(http, url, cancellationToken);
 
             using var doc = JsonDocument.Parse(body);
             var root = doc.RootElement;
@@ -74,13 +79,43 @@ public static class GitHubRestSearchCollector
 
             if (got < PerPage)
                 break;
-
-            // Search REST: ~30 req/min autenticado — folga entre páginas
-            if (page < MaxPages && list.Count < MaxRepositories)
-                await Task.Delay(2100, cancellationToken);
         }
 
         return list;
+    }
+
+    /// <summary> GET com retry em 403/429 (secondary rate limit / abuse). </summary>
+    private static async Task<string> FetchSearchPageAsync(HttpClient http, string url, CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 6;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            using var response = await http.GetAsync(url, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+                return body;
+
+            var code = (int)response.StatusCode;
+            var retriable = code is 403 or 429
+                            && (body.Contains("secondary rate limit", StringComparison.OrdinalIgnoreCase)
+                                || body.Contains("rate limit", StringComparison.OrdinalIgnoreCase)
+                                || code == 429);
+
+            if (retriable && attempt < maxAttempts)
+            {
+                var waitSec = 90;
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    waitSec = Math.Max((int)Math.Ceiling(delta.TotalSeconds), 30);
+                Console.WriteLine($"GitHub pediu espera (HTTP {code}, tentativa {attempt}/{maxAttempts - 1}). Sleep {waitSec}s…");
+                await Task.Delay(TimeSpan.FromSeconds(waitSec), cancellationToken);
+                continue;
+            }
+
+            throw new InvalidOperationException($"GitHub Search HTTP {code}: {body}");
+        }
+
+        throw new InvalidOperationException("GitHub Search: esgotadas tentativas.");
     }
 
     public static void ConfigureHttp(HttpClient http, string? token)

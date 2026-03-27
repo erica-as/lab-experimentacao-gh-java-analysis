@@ -41,7 +41,7 @@ Observações:
 
 - O coletor procura o `.env` automaticamente subindo a árvore de diretórios, então execute o comando a partir da pasta raiz ou de `src/MetricsCollector`.
 - O CSV gerado será salvo em `data/repositorios_processo.csv` (pasta criada automaticamente na raiz do repositório).
-- Entre páginas da Search há ~2,1s de pausa (limite ~30 buscas/minuto com autenticação). Rode com **`GITHUB_TOKEN`** para não estourar rate limit; o run completo leva ~20–30s além do tempo de rede.
+- Entre páginas da Search há **~8s** por defeito (menos **secondary rate limit** do GitHub). Ajuste com `GITHUB_SEARCH_PAGE_DELAY_MS` (mín. 1000). Se der **403** de rate limit, o cliente espera **~90s** e tenta de novo até 5 vezes. Com token, o run completo costuma levar **~2–3 min** para 10 páginas.
 
 ## Próximos passos e notas
 
