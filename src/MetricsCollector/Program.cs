@@ -28,13 +28,12 @@ class Program
             DotNetEnv.Env.Load(envPath);
             Console.WriteLine($".env carregado: {envPath}");
         }
-        else
-        {
-            Console.WriteLine(".env não encontrado; tentando carregar padrão.");
-            DotNetEnv.Env.Load();
-        }
 
-        var githubToken = DotNetEnv.Env.GetString("GITHUB_TOKEN");
+        var githubToken =
+            Environment.GetEnvironmentVariable("GITHUB_TOKEN")?.Trim()
+            ?? Environment.GetEnvironmentVariable("GH_TOKEN")?.Trim();
+        if (string.IsNullOrWhiteSpace(githubToken) || githubToken == "SEU_TOKEN_AQUI")
+            Console.WriteLine("Aviso: defina GITHUB_TOKEN (ou GH_TOKEN) no ambiente; com .env, carregue-o antes (o Load acima injeta no processo).");
 
         using var http = new HttpClient();
         GitHubGraphQlRepositoryCollector.ConfigureHttp(http, githubToken);
