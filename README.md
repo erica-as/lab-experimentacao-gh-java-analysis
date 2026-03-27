@@ -4,7 +4,7 @@ Este repositório contém o coletor de métricas de processo de repositórios Ja
 
 Resumo:
 
-- Código em C#: `src/MetricsCollector` — metadados (estrelas, idade, releases).
+- Código em C#: `src/MetricsCollector` — busca **GraphQL** com **paginação por cursor** até 1.000 repositórios Java (estrelas, idade, contagem de releases).
 - Configuração: `.env` (não comitar) com `GITHUB_TOKEN`.
 
 ## Sobre o Lab 02
@@ -41,10 +41,9 @@ Observações:
 
 - O coletor procura o `.env` automaticamente subindo a árvore de diretórios, então execute o comando a partir da pasta raiz ou de `src/MetricsCollector`.
 - O CSV gerado será salvo em `data/repositorios_processo.csv` (pasta criada automaticamente na raiz do repositório).
-- A coleta faz chamadas à API do GitHub e respeita pausas para ajudar a evitar rate limits; com um token válido o limite é maior (5000/h).
+- A coleta usa o endpoint GraphQL (`/graphql`), pagina com `after`/`pageInfo.endCursor` e faz uma pausa curta entre páginas. Com um PAT válido o limite da API costuma ser confortável para ~10 páginas (1000 repos).
 
 ## Próximos passos e notas
 
-- Para coletar métricas de qualidade (CBO/DIT/LCOM) e LOC, será necessário clonar os repositórios e rodar uma ferramenta de análise de código Java (por exemplo, `ckjm`, `sonar` ou `scitools`).
-- Também é possível migrar a coleta para a API GraphQL (mais flexível para consultas) ou adicionar paginação dentro de cada intervalo de estrelas para aumentar a amostra.
+- Para métricas de qualidade (CBO/DIT/LCOM) e LOC, é preciso clonar os repositórios e rodar análise estática (ex.: CK).
 

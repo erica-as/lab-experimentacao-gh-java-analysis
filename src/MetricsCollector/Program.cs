@@ -1,58 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
-using MetricsCollector.Models;
-using Octokit;
-using CsvHelper;
 using DotNetEnv;
-using System.Globalization;
 
-namespace MetricsCollector
+namespace MetricsCollector;
+
+class Program
 {
-    class Program
+    static async Task Main(string[] args)
     {
-        static async Task Main(string[] args)
+        string? FindEnv()
         {
-            string? FindEnv()
+            var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
+            while (dir != null)
             {
-                var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
-                while (dir != null)
-                {
-                    var candidate = Path.Combine(dir.FullName, ".env");
-                    if (File.Exists(candidate)) return candidate;
-                    dir = dir.Parent;
-                }
-                return null;
+                var candidate = Path.Combine(dir.FullName, ".env");
+                if (File.Exists(candidate)) return candidate;
+                dir = dir.Parent;
             }
-
-            var envPath = FindEnv();
-            if (!string.IsNullOrEmpty(envPath))
-            {
-                DotNetEnv.Env.Load(envPath);
-                Console.WriteLine($".env carregado: {envPath}");
-            }
-            else
-            {
-                Console.WriteLine(".env não encontrado; tentando carregar padrão.");
-                DotNetEnv.Env.Load();
-            }
-            var githubToken = DotNetEnv.Env.GetString("GITHUB_TOKEN");
-
-            var client = new GitHubClient(new ProductHeaderValue("PUC-Minas-Lab02"));
-            
-            if (!string.IsNullOrEmpty(githubToken) && githubToken != "SEU_TOKEN_AQUI")
-            {
-                client.Credentials = new Credentials(githubToken);
-            }
-
-            Console.WriteLine("Iniciando busca pelos 1.000 repositórios Java mais populares.");
-
-            var repositories = await RepositoryCollector.CollectRepositories(client);
-
-            Console.WriteLine($"Coleta concluída. {repositories.Count} repositórios encontrados.");
-            
-            CsvExporter.SaveToCsv(repositories, "repositorios_processo.csv");
+            return null;
         }
+
+        var envPath = FindEnv();
+        if (!string.IsNullOrEmpty(envPath))
+        {
+            DotNetEnv.Env.Load(envPath);
+            Console.WriteLine($".env carregado: {envPath}");
+        }
+        else
+        {
+            Console.WriteLine(".env não encontrado; tentando carregar padrão.");
+            DotNetEnv.Env.Load();
+        }
+
+        var githubToken = DotNetEnv.Env.GetString("GITHUB_TOKEN");
+
+        using var http = new HttpClient();
+        GitHubGraphQlRepositoryCollector.ConfigureHttp(http, githubToken);
+
+        Console.WriteLine($"Iniciando busca pelos {GitHubGraphQlRepositoryCollector.MaxRepositories} repositórios Java (GraphQL + cursor).");
+
+        var repositories = await GitHubGraphQlRepositoryCollector.CollectAsync(http);
+
+        Console.WriteLine($"Coleta concluída. {repositories.Count} repositórios encontrados.");
+
+        CsvExporter.SaveToCsv(repositories, "repositorios_processo.csv");
     }
 }
