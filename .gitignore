@@ -1,0 +1,17 @@
+# Arquivos de ambiente
+.env
+
+# Arquivos gerados pelo .NET
+[Bb]in/
+[Oo]bj/
+
+# Arquivos de usuário e temporários
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+.vs/
+.vscode/
+*.swp
+*~.nib
+
