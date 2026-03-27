@@ -8,6 +8,22 @@ Coletor em C#: lista **1.000** repositórios Java (REST Search), exporta `data/r
 - **Git** no `PATH` (clone).
 - **JAR do [CK](https://github.com/mauricioaniche/ck)** (com dependências), ex. [Maven Central 0.7.0](https://repo1.maven.org/maven2/com/github/mauricioaniche/ck/0.7.0/): ficheiro `ck-0.7.0-jar-with-dependencies.jar`.
 
+### O que é cada coisa (e SDKMAN)
+
+- **`CK_JAR`** — Não tem nada a ver com Java SDK. É o ficheiro **`.jar`** que descarregas (link acima → `jar-with-dependencies`). Grava-o onde quiseres (ex. `~/tools/ck-0.7.0-jar-with-dependencies.jar`) e no `.env` pões o **caminho absoluto** a esse ficheiro.
+- **Java com [SDKMAN](https://sdkman.io/)** — Instala e activa uma versão, por exemplo:
+  ```bash
+  sdk install java 17.0.13-tem
+  sdk use java 17.0.13-tem
+  ```
+  Na mesma shell, `java -version` deve funcionar. O SDKMAN costuma exportar **`JAVA_HOME`** (algo como `~/.sdkman/candidates/java/17.0.13-tem`).  
+  **Se correres `dotnet run` noutro sítio** (IDE, CI) onde o SDKMAN não carregou, coloca no `.env`:
+  ```bash
+  JAVA_HOME="/Users/teuuser/.sdkman/candidates/java/17.0.13-tem"
+  ```
+  O programa usa primeiro `JAVA_HOME/bin/java`; senão procura `java` no `PATH`.
+- **Git** — `git` global (Homebrew, Xcode CLT, etc.), não é o SDKMAN.
+
 ## Configuração (`.env`)
 
 Copie `.env.example` → `.env` e preencha:
