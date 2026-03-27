@@ -6,7 +6,7 @@ Coletor em C#: lista **1.000** repositórios Java (REST Search), exporta `data/r
 
 - **.NET 10** + **Java** (8+; o CK usa JDT alinhado a Java 11 no upstream).
 - **Git** no `PATH` (clone).
-- **JAR do [CK](https://github.com/mauricioaniche/ck)** (com dependências), ex. [Maven Central 0.7.0](https://repo1.maven.org/maven2/com/github/mauricioaniche/ck/0.7.0/): ficheiro `ck-0.7.0-jar-with-dependencies.jar`.
+- **JAR do [CK](https://github.com/mauricioaniche/ck)** em `tools/ck/ck-0.7.0-jar-with-dependencies.jar` (instruções em [`tools/ck/README.md`](tools/ck/README.md); o `.jar` não é versionado no Git).
 
 ### O que é cada coisa (e SDKMAN)
 

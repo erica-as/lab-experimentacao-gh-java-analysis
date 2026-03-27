@@ -4,6 +4,9 @@
 # Clones e saída temporária do CK (gerados pelo MetricsCollector)
 artifacts/
 
+# JAR do CK (~16MB; cada um descarrega para tools/ck/ — ver tools/ck/README.md)
+tools/ck/*.jar
+
 # Arquivos gerados pelo .NET
 [Bb]in/
 [Oo]bj/
