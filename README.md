@@ -1,6 +1,6 @@
 # Lab - Análise de Repositórios Java (Lab 02)
 
-Coletor em C#: lista **1.000** repositórios Java (REST Search), exporta `data/repositorios_processo.csv`, e (Lab02S01) **clona** uma amostra, corre o **CK** (CBO/DIT/LCOM) e atualiza o CSV + evidências.
+Coletor em C#: lista **1.000** repositórios Java (REST Search), exporta `data/repositorios_processo.csv` e integra o **CK** (CBO/DIT/LCOM) com clone automático e evidências em `data/lab02s01_ck_evidence/`. Os modos de execução estão descritos abaixo.
 
 ## Dependências
 
@@ -38,43 +38,45 @@ Copie `.env.example` → `.env` e preencha:
 
 ## Executar
 
+O comando base é sempre o mesmo projeto; o que muda são os argumentos após `--`.
+
 ```bash
 dotnet run --project src/MetricsCollector/MetricsCollector.csproj
 ```
 
-Fluxo predefinido (**Lab02S01 completo**):
+Sem flags adicionais, o programa faz o **percurso completo do Lab02S01**: chama a Search API até mil repositórios Java, grava `data/repositorios_processo.csv`, clona **uma** amostra (`git clone --depth 1`, por omissão a última linha da lista), corre o CK e devolve médias CBO/DIT/LCOM nessa linha. Em paralelo copia os `*.csv` do CK e o `SUMARIO.txt` para `data/lab02s01_ck_evidence/<nome_SAFE>/`. Precisas de `GITHUB_TOKEN` (ou `GH_TOKEN`) no `.env` para a coleta e de `CK_JAR` + Java para o CK.
 
-1. Obtém até **1000** repos (`language:java`, `sort=stars`), grava `data/repositorios_processo.csv`.
-2. **Clone** automático (`git clone --depth 1`) para `artifacts/clones/<repo>/`.
-3. Corre **CK** sobre o clone; médias **CBO / DIT / LCOM** (por classe em `class.csv`) escrita na linha da amostra no CSV principal.
-4. Copia **todos os `*.csv` gerados pelo CK** + `SUMARIO.txt` para `data/lab02s01_ck_evidence/<repo>/`.
-
-Só coleta API (sem clone/CK):
+Se quiseres **apenas** popular ou atualizar o CSV a partir da API, sem clone nem CK, usa `--collect-only`—útil para iterar na lista dos mil sem gastar tempo em métricas.
 
 ```bash
 dotnet run --project src/MetricsCollector/MetricsCollector.csproj -- --collect-only
 ```
 
-Só **clone + CK** (usa o `data/repositorios_processo.csv` já existente, sem chamar a API):
+Quando o CSV já existe e não queres **voltar a bater na Search**, `--ck-only` lê `data/repositorios_processo.csv` e executa só a parte de Git + CK. **Não** precisas de token GitHub neste modo; mantém `CK_JAR` e Java configurados. O comportamento por omissão continua a ser **uma** amostra com evidência na pasta acima.
 
 ```bash
 dotnet run --project src/MetricsCollector/MetricsCollector.csproj -- --ck-only
 ```
 
-Ainda precisas de `CK_JAR` e Java; `GITHUB_TOKEN` não é obrigatório neste modo.
+Para correr o CK **em todas as linhas** a partir desse CSV (sem nova coleta), acrescenta `--ck-all`. O programa grava o ficheiro principal após cada repositório com sucesso e preenche `CkClassRows`, o que permite retomar um batch longo: com `--ck-resume` ignoras entradas em que `CkClassRows` já indica um CK concluído. Por omissão o batch só atualiza métricas no CSV; se precisares da **mesma estrutura de evidência que na amostra** (`*.csv` + `SUMARIO.txt` por repositório), junta `--ck-evidence` (há custo grande em disco e tempo face a um único clone).
 
-Tempos: ~2–3 min para 10 páginas Search; CK depende do tamanho do repo (a amostra predefinida é a **última** linha da lista para ser mais rápida).
+```bash
+dotnet run --project src/MetricsCollector/MetricsCollector.csproj -- --ck-only --ck-all --ck-evidence
+dotnet run --project src/MetricsCollector/MetricsCollector.csproj -- --ck-only --ck-all --ck-evidence --ck-resume
+```
 
-**Nota:** `ReleasesCount` na Search REST fica **0** (não vem no JSON); podes enriquecer depois se precisares para RQ03.
+A variável `LAB02_CK_REPO_INDEX` continua a aplicar-se ao modo **amostra** (sem `--ck-all`). Para a Search entre pedidos podes afinar `GITHUB_SEARCH_PAGE_DELAY_MS` se aparecerem limites secundários da API.
+
+**Nota rápida:** na REST de Search, `ReleasesCount` no CSV costuma ficar a zero porque o campo não vem no JSON; é uma limitação da coleta, não do CK. Tempos indicativos: alguns minutos para as dez páginas de resultados; cada CK depende do tamanho do repo; mil vezes CK pode levar muitas horas.
 
 ## Artefactos
 
 | Caminho | Conteúdo |
 |---------|-----------|
-| `data/repositorios_processo.csv` | 1000 linhas + métricas de processo; **uma** linha com `AvgCbo`/`AvgDit`/`AvgLcom` preenchidos após CK. |
+| `data/repositorios_processo.csv` | 1000 linhas + métricas; `AvgCbo`/`AvgDit`/`AvgLcom` + `CkClassRows` (amostra ou todas com `--ck-all`). |
 | `data/lab02s01_ck_evidence/*/` | `class.csv`, `method.csv`, … + `SUMARIO.txt` (médias e nº de classes). |
 | `artifacts/` | Clones e saída bruta do CK (**gitignored**). |
 
 ## Próximos passos (Lab02S02+)
 
-Réplica CK nos 1000 repositórios, hipóteses, relatório, etc.
+Análise sobre as métricas agregadas (hipóteses, correlações, relatório), eventualmente após um `--ck-all` completo.

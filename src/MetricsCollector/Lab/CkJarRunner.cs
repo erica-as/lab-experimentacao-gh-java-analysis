@@ -12,6 +12,25 @@ public static class CkJarRunner
 {
     public sealed record CkAggregates(double AvgCbo, double AvgDit, double AvgLcom, int ClassRows);
 
+    /// <summary>
+    /// CK 0.7+ grava <c>class.csv</c> ou <c>{identificador}class.csv</c> no diretório de saída.
+    /// </summary>
+    public static string ResolveClassCsvPath(string ckOutputDir)
+    {
+        var classic = Path.Combine(ckOutputDir, "class.csv");
+        if (File.Exists(classic))
+            return classic;
+
+        var prefixed = Directory.GetFiles(ckOutputDir, "*class.csv", SearchOption.AllDirectories);
+        if (prefixed.Length == 1)
+            return prefixed[0];
+        if (prefixed.Length > 1)
+            throw new InvalidOperationException(
+                $"Vários *class.csv em {ckOutputDir}: use CK que gera um único ficheiro ou ajuste o runner. Ficheiros: {string.Join(", ", prefixed.Select(Path.GetFileName))}.");
+
+        throw new InvalidOperationException($"CK não gerou class.csv nem *class.csv em {ckOutputDir}");
+    }
+
     private sealed class CkClassRow
     {
         [Name("cbo")]
@@ -45,11 +64,28 @@ public static class CkJarRunner
             throw new FileNotFoundException("CK_JAR não encontrado.", ckJarPath);
 
         Directory.CreateDirectory(ckOutputDir);
+        var ckOutFull = Path.GetFullPath(ckOutputDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        // CK 0.7.0 faz outputDir + "class.csv" sem File.separator; sem barra final vira ".../PastaNomeclass.csv".
+        // Com barra final, fica ".../PastaNome/class.csv" como Path.Combine espera.
+        var ckOutArgForJava = ckOutFull + Path.DirectorySeparatorChar;
+
+        foreach (var stale in Directory.GetFiles(ckOutFull, "*.csv", SearchOption.AllDirectories))
+        {
+            try
+            {
+                File.Delete(stale);
+            }
+            catch
+            {
+                /* ignorar ficheiros bloqueados */
+            }
+        }
 
         var java = ResolveJavaExecutable();
         var psi = new ProcessStartInfo
         {
             FileName = java,
+            WorkingDirectory = ckOutFull,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -61,28 +97,39 @@ public static class CkJarRunner
         psi.ArgumentList.Add("false"); // use jars
         psi.ArgumentList.Add("0"); // max files / partição
         psi.ArgumentList.Add("false"); // variable/field metrics (muito volume)
-        psi.ArgumentList.Add(Path.GetFullPath(ckOutputDir));
+        psi.ArgumentList.Add(ckOutArgForJava);
 
-        Console.WriteLine($"CK: {java} -jar … → {ckOutputDir}");
+        Console.WriteLine($"CK: {java} -jar … → {ckOutFull}");
         using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Não foi possível iniciar Java.");
         var stdoutT = proc.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderrT = proc.StandardError.ReadToEndAsync(cancellationToken);
-        await proc.WaitForExitAsync(cancellationToken);
-        var stderr = await stderrT;
-        var stdout = await stdoutT;
+        // Evita deadlock: enchedor de stderr/stdout bloqueia o JVM se WaitForExit vier antes da leitura.
+        await Task.WhenAll(proc.WaitForExitAsync(cancellationToken), stdoutT, stderrT).ConfigureAwait(false);
+        var stdout = await stdoutT.ConfigureAwait(false);
+        var stderr = await stderrT.ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(stdout))
             Console.WriteLine(stdout.TrimEnd());
+        if (!string.IsNullOrWhiteSpace(stderr))
+            Console.Error.WriteLine("CK stderr: " + stderr.TrimEnd());
         if (proc.ExitCode != 0)
             throw new InvalidOperationException($"CK exit {proc.ExitCode}: {stderr}");
 
-        var classCsv = Path.Combine(ckOutputDir, "class.csv");
-        if (!File.Exists(classCsv))
-            throw new InvalidOperationException($"CK não gerou class.csv em {ckOutputDir}");
+        try
+        {
+            _ = ResolveClassCsvPath(ckOutFull);
+        }
+        catch (InvalidOperationException ex)
+        {
+            var listing = Directory.Exists(ckOutFull)
+                ? string.Join(", ", Directory.GetFiles(ckOutFull).Select(Path.GetFileName))
+                : "(dir inexistente)";
+            throw new InvalidOperationException($"{ex.Message} (ficheiros em {ckOutFull}: {listing})", ex);
+        }
     }
 
     public static CkAggregates AggregateFromClassCsv(string ckOutputDir)
     {
-        var classCsv = Path.Combine(ckOutputDir, "class.csv");
+        var classCsv = ResolveClassCsvPath(ckOutputDir);
         using var reader = new StreamReader(classCsv);
         using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
         var rows = csv.GetRecords<CkClassRow>().ToList();
@@ -103,7 +150,7 @@ public static class CkJarRunner
         var dest = Path.Combine(repoRoot, "data", "lab02s01_ck_evidence", safe);
         Directory.CreateDirectory(dest);
 
-        foreach (var src in Directory.GetFiles(ckOutputDir, "*.csv"))
+        foreach (var src in Directory.GetFiles(ckOutputDir, "*.csv", SearchOption.AllDirectories))
             File.Copy(src, Path.Combine(dest, Path.GetFileName(src)), overwrite: true);
 
         var ag = AggregateFromClassCsv(ckOutputDir);

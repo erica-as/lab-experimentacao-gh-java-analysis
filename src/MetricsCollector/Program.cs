@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using DotNetEnv;
 using MetricsCollector.Lab;
+using MetricsCollector.Models;
 
 namespace MetricsCollector;
 
@@ -13,6 +14,9 @@ class Program
     {
         var collectOnly = args.Contains("--collect-only", StringComparer.OrdinalIgnoreCase);
         var ckOnly = args.Contains("--ck-only", StringComparer.OrdinalIgnoreCase);
+        var ckAll = args.Contains("--ck-all", StringComparer.OrdinalIgnoreCase);
+        var ckResume = args.Contains("--ck-resume", StringComparer.OrdinalIgnoreCase);
+        var ckEvidence = args.Contains("--ck-evidence", StringComparer.OrdinalIgnoreCase);
 
         string? FindEnv()
         {
@@ -88,6 +92,21 @@ class Program
 
         try
         {
+            if (ckAll)
+            {
+                Console.WriteLine(
+                    "Modo --ck-all: CK em todos os repositórios (demora). Grava CSV após cada sucesso. " +
+                    (ckResume ? "--ck-resume: ignora linhas com CkClassRows > 0. " : "") +
+                    (ckEvidence ? "--ck-evidence: copia CSV CK por repo para data/lab02s01_ck_evidence (muito disco). " : ""));
+                var (done, skipped, failed) = await Sprint1LabWorkflow.RunCkAllAsync(
+                    repositories, repoRoot, ckResume, ckEvidence);
+                if (failed > 0)
+                    Environment.ExitCode = 4;
+                Console.WriteLine(
+                    $"Lab02S01 batch: CSV em data/repositorios_processo.csv (coluna CkClassRows para --ck-resume). Evidências: só com --ck-evidence.");
+                return;
+            }
+
             await Sprint1LabWorkflow.RunCkSampleAsync(repositories, repoRoot);
         }
         catch (InvalidOperationException ex)
@@ -99,6 +118,6 @@ class Program
         }
 
         CsvExporter.SaveToCsv(repositories, "repositorios_processo.csv");
-        Console.WriteLine("Lab02S01: CSV principal atualizado com médias CK na linha da amostra + evidência em data/lab02s01_ck_evidence/");
+        Console.WriteLine("Lab02S01: CSV principal atualizado — amostra com evidência em data/lab02s01_ck_evidence/ (use --ck-all para todos).");
     }
 }

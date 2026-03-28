@@ -4,6 +4,9 @@
 # Clones e saída temporária do CK (gerados pelo MetricsCollector)
 artifacts/
 
+# Evidência CK local (amostra ou milhares de pastas com --ck-evidence; pode ficar gigantesca)
+data/lab02s01_ck_evidence/
+
 # JAR do CK (~16MB; cada um descarrega para tools/ck/ — ver tools/ck/README.md)
 tools/ck/*.jar
 

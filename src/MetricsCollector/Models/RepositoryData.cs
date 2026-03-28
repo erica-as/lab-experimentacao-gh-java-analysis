@@ -10,6 +10,9 @@ namespace MetricsCollector.Models
         public int ReleasesCount { get; set; }
         public double AvgCbo { get; set; } 
         public double AvgDit { get; set; } 
-        public double AvgLcom { get; set; } 
+        public double AvgLcom { get; set; }
+
+        /// <summary>Nº de linhas de classe no class.csv após CK; 0 = ainda não processado (útil com --ck-resume).</summary>
+        public int CkClassRows { get; set; }
     }
 }
