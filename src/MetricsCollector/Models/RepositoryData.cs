@@ -14,5 +14,11 @@ namespace MetricsCollector.Models
 
         /// <summary>Nº de linhas de classe no class.csv após CK; 0 = ainda não processado (útil com --ck-resume).</summary>
         public int CkClassRows { get; set; }
+
+        /// <summary>Total de linhas de código .java (LOC); 0 = ainda não calculado (--loc-all).</summary>
+        public int TotalLoc { get; set; }
+
+        /// <summary>Linhas de comentário .java (heurística: inicia com //, /*, ou * em bloco); 0 = ainda não calculado.</summary>
+        public int CommentLines { get; set; }
     }
 }

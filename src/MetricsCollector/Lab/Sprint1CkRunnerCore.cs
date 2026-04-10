@@ -21,6 +21,11 @@ public static class Sprint1CkRunnerCore
         var ckOutDir = Path.Combine(art, "ck_out", safe);
 
         await GitRepositoryCloner.CloneIfNeededAsync(repo.Url, cloneDir, cancellationToken);
+
+        var (loc, comments) = LocCounter.CountJavaFiles(cloneDir);
+        repo.TotalLoc = loc;
+        repo.CommentLines = comments;
+
         await CkJarRunner.RunCkAsync(ckJar, cloneDir, ckOutDir, cancellationToken);
 
         var agg = CkJarRunner.AggregateFromClassCsv(ckOutDir);
@@ -33,7 +38,7 @@ public static class Sprint1CkRunnerCore
             CkJarRunner.WriteEvidencePack(repoRoot, repo.Name, ckOutDir);
 
         Console.WriteLine(
-            $"CK {repo.Name}: CBO={agg.AvgCbo:F4}, DIT={agg.AvgDit:F4}, LCOM={agg.AvgLcom:F4} ({agg.ClassRows} classes).");
+            $"CK {repo.Name}: CBO={agg.AvgCbo:F4}, DIT={agg.AvgDit:F4}, LCOM={agg.AvgLcom:F4} ({agg.ClassRows} classes), LOC={loc}.");
 
         if (!LabArtifactPolicy.KeepArtifacts)
         {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using CsvHelper;
+using CsvHelper.Configuration;
 using MetricsCollector.Lab;
 using MetricsCollector.Models;
 
@@ -18,8 +19,15 @@ namespace MetricsCollector
             if (!File.Exists(fullPath))
                 throw new FileNotFoundException($"CSV não encontrado: {fullPath}. Corra antes a coleta ou use o caminho certo.");
 
+            // Tolerante a colunas ausentes — permite carregar CSVs gerados por versões anteriores do modelo.
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HeaderValidated = null,
+                MissingFieldFound = null,
+            };
+
             using var reader = new StreamReader(fullPath);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            using var csv = new CsvReader(reader, config);
             return csv.GetRecords<RepositoryData>().ToList();
         }
 

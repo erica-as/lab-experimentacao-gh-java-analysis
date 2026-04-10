@@ -7,6 +7,9 @@ artifacts/
 # Evidência CK local (amostra ou milhares de pastas com --ck-evidence; pode ficar gigantesca)
 data/lab02s01_ck_evidence/
 
+# Artefatos de dados pesados — gerados localmente, não versionados (ex.: zip de evidências)
+data/*.zip
+
 # JAR do CK (~16MB; cada um descarrega para tools/ck/ — ver tools/ck/README.md)
 tools/ck/*.jar
 
@@ -23,4 +26,4 @@ tools/ck/*.jar
 .vscode/
 *.swp
 *~.nib
-
+.DS_Store

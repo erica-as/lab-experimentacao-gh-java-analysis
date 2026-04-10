@@ -91,6 +91,12 @@ public static class CkJarRunner
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        // Limita heap por JVM para permitir alto paralelismo (LAB02_JVM_MAX_HEAP; ex.: "1g", "512m").
+        var jvmMaxHeap = Environment.GetEnvironmentVariable("LAB02_JVM_MAX_HEAP")?.Trim();
+        if (!string.IsNullOrEmpty(jvmMaxHeap))
+            psi.ArgumentList.Add($"-Xmx{jvmMaxHeap}");
+
         psi.ArgumentList.Add("-jar");
         psi.ArgumentList.Add(Path.GetFullPath(ckJarPath));
         psi.ArgumentList.Add(Path.GetFullPath(clonedProjectDir));

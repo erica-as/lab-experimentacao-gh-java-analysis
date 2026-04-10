@@ -17,6 +17,9 @@ class Program
         var ckAll = args.Contains("--ck-all", StringComparer.OrdinalIgnoreCase);
         var ckResume = args.Contains("--ck-resume", StringComparer.OrdinalIgnoreCase);
         var ckEvidence = args.Contains("--ck-evidence", StringComparer.OrdinalIgnoreCase);
+        var locOnly = args.Contains("--loc-only", StringComparer.OrdinalIgnoreCase);
+        var locAll = args.Contains("--loc-all", StringComparer.OrdinalIgnoreCase);
+        var locResume = args.Contains("--loc-resume", StringComparer.OrdinalIgnoreCase);
 
         string? FindEnv()
         {
@@ -40,15 +43,16 @@ class Program
         var githubToken =
             Environment.GetEnvironmentVariable("GITHUB_TOKEN")?.Trim()
             ?? Environment.GetEnvironmentVariable("GH_TOKEN")?.Trim();
-        if (!ckOnly && (string.IsNullOrWhiteSpace(githubToken) || githubToken == "SEU_TOKEN_AQUI"))
+        if (!ckOnly && !locOnly && (string.IsNullOrWhiteSpace(githubToken) || githubToken == "SEU_TOKEN_AQUI"))
             Console.WriteLine("Aviso: defina GITHUB_TOKEN (ou GH_TOKEN) no ambiente; com .env, carregue-o antes (o Load acima injeta no processo).");
 
         List<RepositoryData> repositories;
         var repoRoot = RepoLayout.FindRepoRoot();
 
-        if (ckOnly)
+        if (ckOnly || locOnly)
         {
-            Console.WriteLine("Modo --ck-only: lendo data/repositorios_processo.csv e executando só clone + CK.");
+            var modoLabel = locOnly ? "--loc-only" : "--ck-only";
+            Console.WriteLine($"Modo {modoLabel}: lendo data/repositorios_processo.csv sem chamar a Search API.");
             try
             {
                 repositories = CsvExporter.LoadFromCsv("repositorios_processo.csv");
@@ -67,7 +71,10 @@ class Program
                 return;
             }
 
-            Console.WriteLine($"Linhas carregadas: {repositories.Count}. CK_JAR + Java necessários.");
+            if (locOnly)
+                Console.WriteLine($"Linhas carregadas: {repositories.Count}. Git no PATH necessário para clone.");
+            else
+                Console.WriteLine($"Linhas carregadas: {repositories.Count}. CK_JAR + Java necessários.");
         }
         else
         {
@@ -90,6 +97,26 @@ class Program
             }
         }
 
+        if (locOnly)
+        {
+            if (!locAll)
+            {
+                Console.Error.WriteLine("--loc-only requer --loc-all. Exemplo: dotnet run … -- --loc-only --loc-all [--loc-resume]");
+                Environment.ExitCode = 1;
+                return;
+            }
+
+            Console.WriteLine(
+                "Modo --loc-only --loc-all: LOC em todos os repositórios (clone shallow por repo). " +
+                (locResume ? "--loc-resume: ignora linhas com TotalLoc > 0. " : ""));
+            var (done, skipped, failed) = await Sprint1LabWorkflow.RunLocAllAsync(
+                repositories, repoRoot, locResume);
+            if (failed > 0)
+                Environment.ExitCode = 4;
+            Console.WriteLine("LOC batch: CSV atualizado com TotalLoc e CommentLines.");
+            return;
+        }
+
         try
         {
             if (ckAll)
@@ -103,7 +130,8 @@ class Program
                 if (failed > 0)
                     Environment.ExitCode = 4;
                 Console.WriteLine(
-                    $"Lab02S01 batch: CSV em data/repositorios_processo.csv (coluna CkClassRows para --ck-resume). Evidências: só com --ck-evidence.");
+                    "Lab02S01 batch: CSV em data/repositorios_processo.csv (coluna CkClassRows para --ck-resume). " +
+                    "ExitCode 4 indica falhas parciais — use --ck-resume para retomar. Evidências: só com --ck-evidence.");
                 return;
             }
 
